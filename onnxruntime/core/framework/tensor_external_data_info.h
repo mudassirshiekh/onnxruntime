@@ -3,9 +3,10 @@
 #pragma once
 
 #include <string>
+#include <tuple>
 #include "core/common/status.h"
+#include "core/common/path_string.h"
 #include "core/graph/onnx_protobuf.h"
-#include "core/session/onnxruntime_c_api.h"
 
 namespace onnxruntime {
 class ExternalDataInfo {
@@ -16,7 +17,7 @@ class ExternalDataInfo {
   using OFFSET_TYPE = off_t;
 #endif
 
-  const std::basic_string<ORTCHAR_T>& GetRelPath() const { return rel_path_; }
+  const PathString& GetRelPath() const { return rel_path_; }
 
   OFFSET_TYPE GetOffset() const { return offset_; }
   size_t GetLength() const { return length_; }
@@ -29,12 +30,23 @@ class ExternalDataInfo {
       const ::google::protobuf::RepeatedPtrField<::ONNX_NAMESPACE::StringStringEntryProto>& input,
       std::unique_ptr<ExternalDataInfo>& out);
 
+  using PrepackedInfo = std::tuple<OFFSET_TYPE, size_t, std::string>;
+  using PrepackedInfos = std::unordered_map<std::string, std::vector<PrepackedInfo>>;
+
+  bool HasPrepackedInfo() const noexcept { return !prepacked_infos_.empty(); }
+
+  PrepackedInfos&& TakePrepackedInfos() { return std::move(prepacked_infos_); }
+
  private:
-  std::basic_string<ORTCHAR_T> rel_path_;
+  PathString rel_path_;
   OFFSET_TYPE offset_ = 0;
 
   // 0 means the whole file
   size_t length_ = 0;
   std::string checksum_;
+
+  // Pre-packed blobs found associated with this TensorProto if present
+  // format key, offset, length, checksum
+  PrepackedInfos prepacked_infos_;
 };
 }  // namespace onnxruntime

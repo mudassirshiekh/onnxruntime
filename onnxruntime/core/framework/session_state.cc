@@ -13,6 +13,7 @@
 #include "core/framework/node_index_info.h"
 #include "core/framework/op_kernel.h"
 #include "core/framework/ort_value_pattern_planner.h"
+#include "core/framework/prepacked_weights_container.h"
 #include "core/framework/session_state_utils.h"
 #include "core/framework/utils.h"
 #include "core/providers/cpu/controlflow/utils.h"
@@ -1194,8 +1195,8 @@ Status SessionState::FinalizeSessionState(const std::basic_string<PATH_CHAR_TYPE
   ComputeConstantInitializerUseCount(graph_, constant_initializers_use_count);
   return FinalizeSessionStateImpl(graph_location, kernel_registry_manager, nullptr, sess_options_,
                                   remove_initializers,
-
-                                  constant_initializers_use_count);
+                                  constant_initializers_use_count,
+                                  prepacked_weights_for_serialization_->MainGraph());
 }
 
 static Status Index(const OrtValueNameIdxMap& ort_value_name_idx_map,
@@ -1496,7 +1497,7 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
             return Status::OK();
           },
           logger_, data_transfer_mgr_, external_data_loader_mgr_, *p_seq_exec_plan_, session_options,
-          memory_profile_func, name_to_buffered_tensor_));
+          memory_profile_func, prepacked_subgraph, name_to_buffered_tensor_));
 
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
   // Record Weight allocation info on device

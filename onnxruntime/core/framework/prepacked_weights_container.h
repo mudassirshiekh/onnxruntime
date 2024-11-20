@@ -11,11 +11,16 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 
 namespace onnxruntime {
 
+#ifndef SHARED_PROVIDER
 class Graph;
+#else
+struct Graph;
+#endif
 
 class PrepackedWeightsContainer final {
  public:
@@ -158,5 +163,4 @@ class PrepackedForSerialization final {
   KeyToBlobMap key_to_blobs_;
   Subgraph main_graph_;
 };
-
 }  // namespace onnxruntime
