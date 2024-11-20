@@ -1683,28 +1683,6 @@ common::Status InferenceSession::HasInvalidCombinationOfExecutionProviders() con
   return Status::OK();
 }
 
-static bool GetSavePrepackedInitializersFlag(const ConfigOptions& config_options, bool saving_model,
-                                             bool saving_ort_format, const logging::Logger& logger) {
-  bool save_prepacked_constant_initializers =
-      config_options.GetConfigOrDefault(kOrtSessionOptionsSavePrePackedConstantInitializers,
-                                        "0") == "1";
-
-  if (save_prepacked_constant_initializers && !saving_model) {
-    save_prepacked_constant_initializers = false;
-    LOGS(logger, WARNING)
-        << "SavePrePackedConstantInitializers is set to true but the model is not being saved. Ignoring the flag.";
-  }
-
-  if (save_prepacked_constant_initializers && saving_ort_format) {
-    save_prepacked_constant_initializers = false;
-    LOGS(logger, WARNING)
-        << "Serializing optimized model in ORT format with external pre-packed constant initializers is not supported."
-        << " Ignoring the flag.";
-  }
-
-  return save_prepacked_constant_initializers;
-}
-
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 // VC++ reports: "Releasing unheld lock 'l' in function 'onnxruntime::InferenceSession::Initialize'". But I don't see anything wrong.
@@ -2084,12 +2062,7 @@ common::Status InferenceSession::Initialize() {
 #endif  // !defined(ORT_MINIMAL_BUILD) || defined(ORT_EXTENDED_MINIMAL_BUILD)
     }
 
-    const bool save_prepacked_constant_initializers = GetSavePrepackedInitializersFlag(
-        session_options_.config_options, saving_model, saving_ort_format, *session_logger_);
-
-    // Used either to house memory mapped prepacked weights or
-    // for saving them to disk when enabled.
-    session_state_->CreateContainerForSerializedPrepacked(save_prepacked_constant_initializers);
+    session_state_->SetSaveModeForPrepacks(saving_model, saving_ort_format);
 
     ORT_RETURN_IF_ERROR_SESSIONID_(
         session_state_->FinalizeSessionState(model_location_, kernel_registry_manager_,

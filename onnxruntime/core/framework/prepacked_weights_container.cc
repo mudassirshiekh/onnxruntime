@@ -49,8 +49,8 @@ size_t PrepackedWeightsContainer::GetNumberOfElements() const {
   return prepacked_weights_map_.size();
 }
 
-PrepackedForSerialization::PrepackedForSerialization(bool overwrite_for_save)
-    : main_graph_(nullptr, key_to_blobs_, overwrite_for_save) {
+PrepackedForSerialization::PrepackedForSerialization()
+    : main_graph_(nullptr, key_to_blobs_, false) {
 }
 
 PrepackedForSerialization::~PrepackedForSerialization() = default;

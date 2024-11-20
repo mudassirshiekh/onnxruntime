@@ -364,10 +364,15 @@ class SessionState {
 
   const SessionOptions& GetSessionOptions() const { return sess_options_; }
 
-  // Used only for top level session state
-  void CreateContainerForSerializedPrepacked(bool overwrite_for_save) {
-    prepacked_weights_for_serialization_.emplace(overwrite_for_save);
-  }
+  /// <summary>
+  /// Deduce the flag whether we need to enable or disable
+  /// saving for serialization mode and create the member container with
+  /// the corresponding argument.
+  /// </summary>
+  /// <param name="saving_model"></param>
+  /// <param name="saving_ort_format"></param>
+  void SetSaveModeForPrepacks(bool saving_model,
+                                            bool saving_ort_format);
 
  private:
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(SessionState);
@@ -536,7 +541,7 @@ class SessionState {
   PrepackedWeightsContainer* const prepacked_weights_container_{};
   // This container serves either for reading and using pre-packed weights from disk
   // of serializing to disk
-  std::optional<PrepackedForSerialization> prepacked_weights_for_serialization_;
+  PrepackedForSerialization prepacked_weights_for_serialization_;
 
 #ifdef ENABLE_TRAINING
 // Needed for ORTTrainer. Should be removed along with ORTTrainer code

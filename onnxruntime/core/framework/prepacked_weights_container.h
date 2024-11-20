@@ -74,18 +74,18 @@ class PrepackedWeightsContainer final {
 
 /// <summary>
 /// This class has a dual purpose.
-/// When saving to disk is ON
-/// it provides a storage container for PrePackedWeights instances
-/// for storing pre-packed weights in the external file. In this mode
-/// we do not read any pre-packed weights from disk.
+/// When saving to disk is ON (IsOverWriteForSave() true)
+/// it provides a storage container for PrePackedWeights instances. The pre-packed
+/// data is collected using PrepackConstaitInitializers(). In this case newly pre-pack
+/// data is used for writing to disk, unless old data matches.
 ///
 /// If saving is OFF, it is used to contain the weights memory mapped from disk.
-/// Those weights are then fed to shared container if weights sharing is enabled
-/// and then to the individual kernels.
+/// Those weights are then moved to the shared container if weight sharing is enabled.
+/// And also the interested kernels.
 /// </summary>
 class PrepackedForSerialization final {
  public:
-  explicit PrepackedForSerialization(bool overwrite_for_save = false);
+  explicit PrepackedForSerialization();
   ~PrepackedForSerialization();
 
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(PrepackedForSerialization);
@@ -103,7 +103,7 @@ class PrepackedForSerialization final {
   class Subgraph {
    public:
     Subgraph(Subgraph* par, KeyToBlobMap& key_blobs, bool overwrite_for_save)
-        : overwrite_for_save_(overwrite_for_save), parent_(par), key_to_blobs_(key_blobs) {
+        : save_mode_on_(overwrite_for_save), parent_(par), key_to_blobs_(key_blobs) {
     }
 
     ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(Subgraph);
@@ -115,7 +115,7 @@ class PrepackedForSerialization final {
     Subgraph& GetOrCreateSubgraph(const Graph* graph) {
       auto result = subgraph_prepacks_.emplace(graph, nullptr);
       if (result.second) {
-        result.first->second = std::make_unique<Subgraph>(this, key_to_blobs_, overwrite_for_save_);
+        result.first->second = std::make_unique<Subgraph>(this, key_to_blobs_, save_mode_on_);
       }
       return *result.first->second;
     }
@@ -135,12 +135,16 @@ class PrepackedForSerialization final {
 
     PrePackedWeights* GetPrepackedWeights(const std::string& key);
 
-    bool IsOverWriteForSave() const noexcept {
-      return overwrite_for_save_;
+    bool IsSaveModeOn() const noexcept {
+      return save_mode_on_;
+    }
+
+    void SetSaveMode(bool value) noexcept {
+      save_mode_on_ = value;
     }
 
    private:
-    bool overwrite_for_save_;
+    bool save_mode_on_;
     Subgraph* parent_ = nullptr;
     KeyToBlobMap& key_to_blobs_;
     WeightToPrePacksMap weight_to_pre_packs_;
@@ -154,6 +158,14 @@ class PrepackedForSerialization final {
 
   Subgraph& MainGraph() noexcept {
     return main_graph_;
+  }
+
+  size_t GetNumberOfKeyedBlobs() const noexcept {
+    return key_to_blobs_.size();
+  }
+
+  void SetSaveMode(bool value) noexcept {
+    main_graph_.SetSaveMode(value);
   }
 
  private:

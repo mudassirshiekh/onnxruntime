@@ -1196,7 +1196,29 @@ Status SessionState::FinalizeSessionState(const std::basic_string<PATH_CHAR_TYPE
   return FinalizeSessionStateImpl(graph_location, kernel_registry_manager, nullptr, sess_options_,
                                   remove_initializers,
                                   constant_initializers_use_count,
-                                  prepacked_weights_for_serialization_->MainGraph());
+                                  prepacked_weights_for_serialization_.MainGraph());
+}
+
+void SessionState::SetSaveModeForPrepacks(bool saving_model,
+                                                        bool saving_ort_format) {
+  bool save_prepacked_constant_initializers =
+      sess_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsSavePrePackedConstantInitializers,
+                                                      "0") == "1";
+
+  if (save_prepacked_constant_initializers && !saving_model) {
+    save_prepacked_constant_initializers = false;
+    LOGS(logger_, WARNING)
+        << "SavePrePackedConstantInitializers is set to true but the model is not being saved. Ignoring the flag.";
+  }
+
+  if (save_prepacked_constant_initializers && saving_ort_format) {
+    save_prepacked_constant_initializers = false;
+    LOGS(logger_, WARNING)
+        << "Serializing optimized model in ORT format with external pre-packed constant initializers is not supported."
+        << " Ignoring the flag.";
+  }
+
+  prepacked_weights_for_serialization_.SetSaveMode(save_prepacked_constant_initializers);
 }
 
 static Status Index(const OrtValueNameIdxMap& ort_value_name_idx_map,

@@ -32,6 +32,8 @@ Status ExternalDataInfo::Create(const RepeatedPtrField<StringStringEntryProto>& 
   };
 
   out = std::make_unique<ExternalDataInfo>();
+  PrepackedInfos prepacked_infos;
+
   const int input_size = input.size();
 
   for (int i = 0; i != input_size; ++i) {
@@ -60,9 +62,8 @@ Status ExternalDataInfo::Create(const RepeatedPtrField<StringStringEntryProto>& 
       // users can over-write this file with the correct pre-packed info.
       const std::string& prepacked = stringmap.value();
       if (!prepacked.empty()) {
-        PrepackedInfos prepacked_infos;
         auto split_fields = utils::SplitString(prepacked, "|", false);
-        if (split_fields.size() > 2) {
+        if (split_fields.size() > 1) {
           const std::string key{split_fields[0]};
           auto& blob_infos = prepacked_infos[key];
           for (size_t f = 1; f < split_fields.size(); ++f) {
@@ -79,17 +80,51 @@ Status ExternalDataInfo::Create(const RepeatedPtrField<StringStringEntryProto>& 
             prepacked_infos.erase(key);
           }
         }
-        if (!prepacked_infos.empty()) {
-          out->prepacked_infos_ = std::move(prepacked_infos);
-        }
       }
     } else {
       return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "model format error!");
     }
   }
+
   if (out->rel_path_.empty()) {
     return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "model format error! Missing 'location'");
   }
+
+  if (!prepacked_infos.empty()) {
+    out->prepacked_infos_ = std::move(prepacked_infos);
+  }
+
   return Status::OK();
 }
+void ExternalDataInfo::SetExternalLocationToProto(const std::filesystem::path& external_file_path,
+                                                  int64_t external_offset, size_t tensor_bytes_size,
+                                                  ::ONNX_NAMESPACE::TensorProto& proto) {
+  proto.set_data_location(ONNX_NAMESPACE::TensorProto_DataLocation::TensorProto_DataLocation_EXTERNAL);
+
+  auto* location = proto.add_external_data();
+  location->set_key("location");
+  location->set_value(ToUTF8String(external_file_path.native()));
+
+  auto* offset = proto.add_external_data();
+  offset->set_key("offset");
+  offset->set_value(std::to_string(external_offset));
+
+  auto* length = proto.add_external_data();
+  length->set_key("length");
+  length->set_value(std::to_string(tensor_bytes_size));
+}
+
+// void ExternalDataInfo::AddPrepackedEntriesToProto(
+//     const PrepackedForSerialization::BlobsInderect& prepacked_for_write, ::ONNX_NAMESPACE::TensorProto& proto) {
+//   size_t prepack_count = 0;
+//   std::stringstream os;
+//   for (auto iter : prepacked_for_write) {
+//     const auto& [key, prepacked_weights] = *iter;
+//     os << key << '|';
+//     const size_t blob_num = prepacked_weights.buffers_.size();
+//     for (size_t i = 0; blob_num; ++i) {
+//       //XXX: Need offset calculation
+//       // os << ed_weights.blobs_[i].offset << ';';
+//     }
+//   }
 }  // namespace onnxruntime

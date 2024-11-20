@@ -2,13 +2,17 @@
 // Licensed under the MIT License.
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <tuple>
+
 #include "core/common/status.h"
 #include "core/common/path_string.h"
+#include "core/framework/prepacked_weights_container.h"
 #include "core/graph/onnx_protobuf.h"
 
 namespace onnxruntime {
+
 class ExternalDataInfo {
  public:
 #ifdef _WIN32
@@ -29,6 +33,14 @@ class ExternalDataInfo {
   static common::Status Create(
       const ::google::protobuf::RepeatedPtrField<::ONNX_NAMESPACE::StringStringEntryProto>& input,
       std::unique_ptr<ExternalDataInfo>& out);
+
+  static void SetExternalLocationToProto(const std::filesystem::path& external_file_path,
+                                         int64_t offset,
+                                         size_t tensor_bytes_size,
+                                         ::ONNX_NAMESPACE::TensorProto& proto);
+
+  static void AddPrepackedEntriesToProto(const PrepackedForSerialization::BlobsInderect& prepacked_for_write,
+                                         ::ONNX_NAMESPACE::TensorProto& proto);
 
   using PrepackedInfo = std::tuple<OFFSET_TYPE, size_t, std::string>;
   using PrepackedInfos = std::unordered_map<std::string, std::vector<PrepackedInfo>>;
