@@ -30,7 +30,8 @@ Status LoadSaveAndCompareModel(const std::filesystem::path& input_onnx,
   ORT_RETURN_IF_ERROR(Model::Load(input_onnx, model, nullptr, *logger));
   std::filesystem::remove(output_onnx);
   std::filesystem::remove(output_external_init_file);
-  ORT_RETURN_IF_ERROR(Model::SaveWithExternalInitializers(*model, output_onnx, output_external_init_file, initializer_size_threshold,
+  ORT_RETURN_IF_ERROR(Model::SaveWithExternalInitializers(*model, output_onnx, output_external_init_file,
+                                                          initializer_size_threshold,
                                                           align_info));
 
   std::shared_ptr<Model> model_from_external;

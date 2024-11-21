@@ -4171,6 +4171,7 @@ ONNX_NAMESPACE::GraphProto Graph::ToGraphProtoWithExternalInitializers(const std
       output_proto->set_doc_string(initializer.doc_string());
 
       external_offset += tensor_bytes_size;
+
 #if !defined(DISABLE_SPARSE_TENSORS)
     }
 #endif

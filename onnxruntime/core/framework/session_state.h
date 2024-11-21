@@ -372,7 +372,7 @@ class SessionState {
   /// <param name="saving_model"></param>
   /// <param name="saving_ort_format"></param>
   void SetSaveModeForPrepacks(bool saving_model,
-                                            bool saving_ort_format);
+                              bool saving_ort_format);
 
  private:
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(SessionState);

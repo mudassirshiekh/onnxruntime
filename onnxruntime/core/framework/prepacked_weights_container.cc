@@ -3,6 +3,7 @@
 
 #include "core/framework/prepacked_weights_container.h"
 #include "core/framework/allocator_utils.h"
+#include "core/graph/graph.h"
 
 namespace onnxruntime {
 
@@ -55,7 +56,7 @@ PrepackedForSerialization::PrepackedForSerialization()
 
 PrepackedForSerialization::~PrepackedForSerialization() = default;
 
-void PrepackedForSerialization::Subgraph::InsertFromDisk(std::string key, PrePackedWeights&& packed_weight) {
+void PrepackedForSerialization::Subgraph::Insert(std::string key, PrePackedWeights&& packed_weight) {
   auto result = key_to_blobs_.emplace(std::move(key), std::move(packed_weight));
   ORT_ENFORCE(result.second, "Duplicate pre-packed weight from disk");
 }
@@ -83,6 +84,24 @@ PrePackedWeights* PrepackedForSerialization::Subgraph::GetPrepackedWeights(const
     return nullptr;
   }
   return &it->second;
+}
+
+std::optional<PrePackedWeights> PrepackedForSerialization::TakePrepackedWeights(const std::string& key) {
+  auto it = key_to_blobs_.find(key);
+  if (it == key_to_blobs_.end()) {
+    return std::nullopt;
+  }
+  PrePackedWeights result = std::move(it->second);
+  key_to_blobs_.erase(it);
+  return result;
+}
+
+PrepackedForSerialization::Subgraph& PrepackedForSerialization::FindOrCreateSubgraph(const Graph& graph) {
+  if (graph.ParentGraph() == nullptr) {
+    return main_graph_;
+  }
+  auto& parent = FindOrCreateSubgraph(*graph.ParentGraph());
+  return parent.GetOrCreateSubgraph(graph);
 }
 
 }  // namespace onnxruntime

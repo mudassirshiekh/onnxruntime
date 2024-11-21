@@ -1074,7 +1074,7 @@ Status GetExtDataFromTensorProto(const Env& env, const std::filesystem::path& mo
           prepacked_weights.buffer_sizes_.push_back(blob_length);
         }
         if (!blobs.empty()) {
-          prepacked_info->InsertFromDisk(key, std::move(prepacked_weights));
+          prepacked_info->Insert(key, std::move(prepacked_weights));
         }
       }
     }

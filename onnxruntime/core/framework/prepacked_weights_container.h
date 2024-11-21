@@ -112,21 +112,26 @@ class PrepackedForSerialization final {
       return parent_;
     }
 
-    Subgraph& GetOrCreateSubgraph(const Graph* graph) {
-      auto result = subgraph_prepacks_.emplace(graph, nullptr);
+    Subgraph& GetOrCreateSubgraph(const Graph& graph) {
+      auto result = subgraph_prepacks_.emplace(&graph, nullptr);
       if (result.second) {
         result.first->second = std::make_unique<Subgraph>(this, key_to_blobs_, save_mode_on_);
       }
       return *result.first->second;
     }
 
-    const Subgraph* GetSubgraph(const Graph* graph) const {
-      auto it = subgraph_prepacks_.find(graph);
+    const Subgraph* GetSubgraph(const Graph& graph) const {
+      auto it = subgraph_prepacks_.find(&graph);
+      return it == subgraph_prepacks_.end() ? nullptr : it->second.get();
+    }
+
+    Subgraph* GetSubgraph(const Graph& graph) {
+      auto it = subgraph_prepacks_.find(&graph);
       return it == subgraph_prepacks_.end() ? nullptr : it->second.get();
     }
 
     // This does not populate per-initializer structures.
-    void InsertFromDisk(std::string key, PrePackedWeights&& packed_weight);
+    void Insert(std::string key, PrePackedWeights&& packed_weight);
 
     bool CreateOrOverWrite(const std::string& weight_name, std::string key,
                            PrePackedWeights&& packed_weight);
@@ -167,6 +172,14 @@ class PrepackedForSerialization final {
   void SetSaveMode(bool value) noexcept {
     main_graph_.SetSaveMode(value);
   }
+
+  bool IsSaveModeOn() const noexcept {
+    return main_graph_.IsSaveModeOn();
+  }
+
+  std::optional<PrePackedWeights> TakePrepackedWeights(const std::string& key);
+
+  Subgraph& FindOrCreateSubgraph(const Graph& graph);
 
  private:
   // Map of key to pre-packed blobs.This is common for all subgraphs
