@@ -7,6 +7,7 @@
 **ONNX Runtime training** can accelerate the model training time on multi-node NVIDIA GPUs for transformer models with a one-line addition for existing PyTorch training scripts. [Learn more &rarr;](https://www.onnxruntime.ai/docs/#onnx-runtime-for-training)
 
 ## Get Started & Resources
+## By Mudassir Alam
 
 * **General Information**: [onnxruntime.ai](https://onnxruntime.ai)
 
